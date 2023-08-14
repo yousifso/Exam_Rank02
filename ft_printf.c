@@ -1,75 +1,50 @@
-#include <stdarg.h>
 #include <unistd.h>
+#include <stdarg.h>
 
-int r = 0;
-
-void ft_putnbr(long dig, int len, char *sign)
+void    put_string(char *string, int *length)
 {
-	if (dig >= len)
-		ft_putnbr(dig/len, len, sign);
-	write(1, &sign[dig % len], 1);
-	r++;
+        if (!string)
+                string = "(null)";
+        while (*string)
+                *length += write(1, string++, 1);
 }
 
-void ft_puthex(unsigned dig, unsigned len, char *sign)
+void    put_digit(long long int number, int base, int *length)
 {
-	if (dig >= len)
-		ft_puthex(dig/len, len, sign);
-	write(1, &sign[dig % len], 1);
-	r++;
-}
-	 
-int ft_printf(const char *format, ...)
-{
-	r = 0;
-	va_list ap;
-	va_start(ap, format);
-	while(*format)
-	{
-		if (*format == '%')
-		{
-			*format++;
-			if (*format == 's')
-			{
-				int len = 0;
-				char *str = va_arg(ap, char *);
-				if (!str)
-					str = "(null)";
-				while (str[len])
-					len++;
-				r += len;
-				write(1, str, len);
-			}
-			else if(*format == 'd')
-			{
-				long long d = va_arg(ap, int);
-				if (d < 0)
-				{
-					write(1, "-", 1);
-					r++;
-					d = -d;
-				}
-				ft_putnbr(d, 10, "0123456789");
-			}
-			else if(*format == 'x')
-			{
-				int x = va_arg(ap, int);
-				ft_puthex(x, 16, "0123456789abcdef");
-			}
-			format++;
-		}
-		else
-			r += write(1, format++, 1);
-	}
-	va_arg(ap);
-	return(r);
+        char    *hexadecimal = "0123456789abcdef";
+
+        if (number < 0)
+        {
+                number *= -1;
+                *length += write(1, "-", 1);
+        }
+        if (number >= base)
+                put_digit((number / base), base, length);
+        *length += write(1, &hexadecimal[number % base], 1);
 }
 
-#include <stdio.h>
-
-int main(void)
+int     ft_printf(const char *format, ...)
 {
-  	printf("I - %d\n", printf("qwerty %s\t%d\t%x\n", "stroka1", 2147148145, -42));
-  	printf("II - %d\n", ft_printf("qwerty %s\t%d\t%x\n", "stroka2", 2147148145, -42));
-  	return 0;
- }
+        int     length = 0;
+
+        va_list pointer;
+        va_start (pointer, format);
+
+        while (*format)
+        {
+                if ((*format == '%') && ((*(format + 1) == 's') || (*(format + 1) == 'd') || (*(format + 1) == 'x')))
+                {
+                        format++;
+                        if (*format == 's')
+                                put_string(va_arg(pointer, char *), &length);
+                        else if (*format == 'd')
+                                put_digit((long long int)va_arg(pointer, int), 10, &length);
+                        else if (*format == 'x')
+                                put_digit((long long int)va_arg(pointer, unsigned int), 16, &length);
+                }
+                else
+                        length += write(1, format, 1);
+                format++;
+        }
+        return(va_end(pointer), length);
+}
